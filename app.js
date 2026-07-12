@@ -339,14 +339,6 @@
     catch (e) { dstr = new Date().toLocaleDateString(); }
     x.fillText("Дата: " + dstr, W / 2, 784);
 
-    x.fillStyle = "#172d44"; x.font = "700 23px Lora, Georgia, serif";
-    x.fillText("PRO Учительская", W / 2, H - 42);
-
-    x.beginPath(); x.arc(W - 152, 690, 50, 0, Math.PI * 2);
-    x.fillStyle = "#d8543a"; x.fill();
-    x.fillStyle = "#fff"; x.font = "700 28px Lora, Georgia, serif";
-    x.fillText("PRO", W - 152, 700);
-
     c.toBlob(function (blob) {
       if (!blob) { toast("Не удалось создать картинку"); return; }
       var a = document.createElement("a");
