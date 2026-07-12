@@ -4,6 +4,8 @@
 
   var DATA = window.TESTS_DATA;
   var STORE_KEY = DATA.meta.storeKey;
+  var NAME_KEY = STORE_KEY + ":name";
+  var SITE_URL = "https://prouchitelskaya.github.io/russian-tests-5-11/";
   var LETTERS = ["А", "Б", "В", "Г"];
 
   var $ = function (id) { return document.getElementById(id); };
@@ -23,6 +25,12 @@
   function saveStore(store) {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* приватный режим */ }
   }
+  function loadName() {
+    try { return localStorage.getItem(NAME_KEY) || ""; } catch (e) { return ""; }
+  }
+  function saveName(n) {
+    try { localStorage.setItem(NAME_KEY, n); } catch (e) { /* приватный режим */ }
+  }
 
   /* ---------- состояние ---------- */
   var state = {
@@ -30,7 +38,8 @@
     idx: 0,           // номер текущего вопроса
     score: 0,
     locked: false,    // ответ уже дан
-    optOrders: []     // перемешанный порядок вариантов для каждого вопроса
+    optOrders: [],    // перемешанный порядок вариантов для каждого вопроса
+    result: null      // {gradeId, gradeLabel, topic, score, total} для грамоты
   };
 
   function shuffle(arr) {
@@ -190,6 +199,8 @@
       saveStore(store);
     }
 
+    state.result = { gradeId: g.id, gradeLabel: g.grade, topic: g.topic, score: score, total: total };
+
     $("result-grade").textContent = g.grade + " · " + g.topic;
     $("score-total").textContent = "из " + total;
 
@@ -201,8 +212,166 @@
     var pct = Math.round(score / total * 100);
     ring.style.setProperty("--ring", score / total >= 0.7 ? "var(--good)" : "var(--accent)");
 
+    prepareCert();
+
     show("result");
     animateScore(score, pct);
+  }
+
+  /* ---------- грамота ---------- */
+  function shortRank(score, total) {
+    var p = total ? score / total : 0;
+    if (score === total) return "Идеально";
+    if (p >= 0.9) return "Блестяще";
+    if (p >= 0.7) return "Отлично";
+    if (p >= 0.5) return "Хорошо";
+    return "Участие";
+  }
+  function certKind(score, total) {
+    return (total ? score / total : 0) >= 0.7 ? "Грамота" : "Сертификат";
+  }
+  function prepareCert() {
+    var r = state.result;
+    if (!r) return;
+    var kind = certKind(r.score, r.total);
+    $("cert-title").textContent = kind === "Грамота" ? "Именная грамота" : "Именной сертификат";
+    var input = $("cert-name");
+    if (input && !input.value) input.value = loadName();
+    updateShare();
+  }
+  function buildReport() {
+    var r = state.result;
+    if (!r) return "";
+    var name = (($("cert-name") || {}).value || "").trim();
+    var pct = r.total ? Math.round(r.score / r.total * 100) : 0;
+    var lines = ["🎓 " + certKind(r.score, r.total) + " · PRO Учительская"];
+    if (name) lines.push("Ученик: " + name);
+    lines.push(r.gradeLabel + " · " + r.topic);
+    lines.push("Результат: " + r.score + " из " + r.total + " (" + pct + "%) — " + shortRank(r.score, r.total));
+    lines.push(SITE_URL);
+    return lines.join("\n");
+  }
+  function updateShare() {
+    var a = $("cert-share");
+    if (a) a.href = "https://t.me/share/url?url=" + encodeURIComponent(SITE_URL) + "&text=" + encodeURIComponent(buildReport());
+  }
+  function wrapLines(ctx, text, maxW) {
+    var words = text.split(" ");
+    var lines = [], cur = "";
+    for (var i = 0; i < words.length; i++) {
+      var test = cur ? cur + " " + words[i] : words[i];
+      if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = words[i]; }
+      else cur = test;
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  }
+  function drawCert() {
+    var r = state.result;
+    if (!r) return;
+    var name = (($("cert-name") || {}).value || "").trim();
+    if (name) saveName(name);
+    var displayName = name || "Ученик(-ца)";
+    var pct = r.total ? Math.round(r.score / r.total * 100) : 0;
+    var kind = certKind(r.score, r.total);
+
+    var W = 1240, H = 877;
+    var c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    var x = c.getContext("2d");
+
+    var bg = x.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, "#fffdf9"); bg.addColorStop(1, "#f4e9db");
+    x.fillStyle = bg; x.fillRect(0, 0, W, H);
+
+    x.strokeStyle = "rgba(216,84,58,0.75)"; x.lineWidth = 6; x.strokeRect(30, 30, W - 60, H - 60);
+    x.strokeStyle = "rgba(216,84,58,0.32)"; x.lineWidth = 2; x.strokeRect(48, 48, W - 96, H - 96);
+
+    x.textAlign = "center";
+    x.fillStyle = "#d8543a"; x.font = "700 22px Inter, Arial, sans-serif";
+    x.fillText("PRO УЧИТЕЛЬСКАЯ · РУССКИЙ ЯЗЫК", W / 2, 122);
+    x.fillStyle = "#172d44"; x.font = "700 92px Lora, Georgia, serif";
+    x.fillText(kind, W / 2, 228);
+    x.fillStyle = "#5c6f84"; x.font = "400 28px Inter, Arial, sans-serif";
+    x.fillText("награждается", W / 2, 290);
+    x.fillStyle = "#172d44"; x.font = "italic 700 54px Lora, Georgia, serif";
+    x.fillText(displayName, W / 2, 366);
+    x.fillStyle = "#5c6f84"; x.font = "400 27px Inter, Arial, sans-serif";
+    x.fillText("за прохождение теста · " + r.gradeLabel, W / 2, 428);
+    x.fillStyle = "#3a5265"; x.font = "600 33px Lora, Georgia, serif";
+    var topicLines = wrapLines(x, "«" + r.topic + "»", W - 280).slice(0, 2);
+    var ty = 480;
+    topicLines.forEach(function (ln) { x.fillText(ln, W / 2, ty); ty += 42; });
+
+    var sy = 636;
+    var cx = [W / 2 - 300, W / 2, W / 2 + 300];
+    var vals = [r.score + " / " + r.total, pct + "%", shortRank(r.score, r.total)];
+    var labs = ["РЕЗУЛЬТАТ", "ПРОЦЕНТ", "ОЦЕНКА"];
+    for (var i = 0; i < 3; i++) {
+      x.fillStyle = "#d8543a"; x.font = "700 40px Lora, Georgia, serif";
+      x.fillText(vals[i], cx[i], sy);
+      x.fillStyle = "#8fa0b2"; x.font = "700 16px Inter, Arial, sans-serif";
+      x.fillText(labs[i], cx[i], sy + 34);
+    }
+
+    x.fillStyle = "#5c6f84"; x.font = "400 23px Inter, Arial, sans-serif";
+    var dstr;
+    try { dstr = new Date().toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }); }
+    catch (e) { dstr = new Date().toLocaleDateString(); }
+    x.fillText("Дата: " + dstr, W / 2, 742);
+
+    x.fillStyle = "#172d44"; x.font = "700 24px Lora, Georgia, serif";
+    x.fillText("PRO Учительская · Арина Галицкая", W / 2, H - 96);
+    x.fillStyle = "#8fa0b2"; x.font = "400 19px Inter, Arial, sans-serif";
+    x.fillText("prouchitelskaya.github.io/russian-tests-5-11", W / 2, H - 66);
+
+    x.beginPath(); x.arc(W - 168, H - 150, 52, 0, Math.PI * 2);
+    x.fillStyle = "#d8543a"; x.fill();
+    x.fillStyle = "#fff"; x.font = "700 30px Lora, Georgia, serif";
+    x.fillText("PRO", W - 168, H - 140);
+
+    c.toBlob(function (blob) {
+      if (!blob) { toast("Не удалось создать картинку"); return; }
+      var a = document.createElement("a");
+      a.download = "gramota-" + r.gradeId + (name ? "-" + name.replace(/\s+/g, "_") : "") + ".png";
+      a.href = URL.createObjectURL(blob);
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+      toast("Грамота сохранена картинкой — её можно отправить в PRO Учительскую");
+    }, "image/png");
+  }
+  function downloadCert() {
+    // Рисуем ГАРАНТИРОВАННО: пытаемся подгрузить шрифты, но не ждём дольше ~600 мс
+    // (document.fonts.ready может «зависнуть», если внешний запрос шрифта не завершился).
+    var done = false;
+    function go() { if (done) return; done = true; drawCert(); }
+    var f = document.fonts;
+    if (f && f.load) {
+      try {
+        Promise.race([
+          Promise.all([f.load("700 92px Lora"), f.load("italic 700 54px Lora"), f.load("400 28px Inter")]),
+          new Promise(function (res) { setTimeout(res, 600); })
+        ]).then(go, go);
+      } catch (e) { go(); }
+      setTimeout(go, 750);
+    } else {
+      go();
+    }
+  }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $("toast");
+    if (!t) return;
+    t.textContent = msg;
+    t.hidden = false;
+    void t.offsetWidth;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      t.classList.remove("show");
+      setTimeout(function () { t.hidden = true; }, 320);
+    }, 3000);
   }
 
   function animateScore(score, pct) {
@@ -250,6 +419,11 @@
   $("quiz-exit").addEventListener("click", goHome);
   $("btn-retry").addEventListener("click", function () { startQuiz(state.grade.id); });
   $("btn-home").addEventListener("click", goHome);
+  $("cert-download").addEventListener("click", downloadCert);
+  (function () {
+    var cn = $("cert-name");
+    if (cn) cn.addEventListener("input", function () { saveName(cn.value.trim()); updateShare(); });
+  })();
 
   window.addEventListener("hashchange", function () {
     var id = location.hash.replace("#", "");
