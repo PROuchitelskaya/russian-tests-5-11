@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Тесты по русскому языку для 5–11 классов: вводные уроки о языке. В каждом классе – 20 вопросов с объяснениями. От репетитора Арины Галицкой." />
+  <meta name="theme-color" content="#101b28" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#faf6f0" media="(prefers-color-scheme: light)" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E" />
+  <title>Тесты по русскому языку · 5–11 классы — Учительская</title>
+  <link rel="stylesheet" href="styles.css?v=1" />
+</head>
+<body>
+  <div class="bg-orn" aria-hidden="true"><span class="orb o1"></span><span class="orb o2"></span></div>
+
+  <div class="page">
+
+    <a class="cta-banner" href="https://t.me/ArinaGalitskaya" target="_blank" rel="noopener" aria-label="Записаться на занятие с Ариной в Telegram">
+      <span class="cta-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M9.04 15.66 8.85 19.4c.27 0 .39-.11.53-.25l1.27-1.21 2.63 1.93c.48.27.83.13.95-.45l1.72-8.07.01-.01c.16-.74-.27-1.03-.74-.85L4.06 14.36c-.73.28-.72.69-.12.87l2.6.81 6.05-3.81c.29-.18.55-.08.34.1z"/></svg>
+      </span>
+      <span class="cta-content">
+        <strong>Заниматься с&nbsp;Ариной</strong>
+        <span class="cta-sub">персональные занятия по&nbsp;русскому языку · Telegram</span>
+      </span>
+      <span class="cta-arrow" aria-hidden="true">→</span>
+    </a>
+
+    <!-- ===== ГЛАВНАЯ ===== -->
+    <section class="view" id="view-home">
+      <header class="hero">
+        <p class="eyebrow">Учительская · русский язык</p>
+        <h1 class="title">Тесты по русскому языку<br /><span class="title-accent">5–11 классы</span></h1>
+        <p class="subtitle">Вводные уроки о русском языке. Выберите класс – и проверьте себя: 20&nbsp;вопросов с&nbsp;объяснением каждого ответа.</p>
+      </header>
+      <div class="grade-grid" id="grade-grid"></div>
+      <footer class="foot">
+        <p><strong>Учительская</strong> · Арина Галицкая</p>
+        <p class="foot-sub">Тесты составлены по темам уроков. Ошибаться – нормально: каждое объяснение – маленький кусочек урока.</p>
+      </footer>
+    </section>
+
+    <!-- ===== ТЕСТ ===== -->
+    <section class="view hidden" id="view-quiz">
+      <div class="quiz-head">
+        <button class="btn ghost small" id="quiz-exit" type="button">← Классы</button>
+        <div class="quiz-meta">
+          <span class="quiz-grade" id="quiz-grade"></span>
+          <span class="quiz-topic" id="quiz-topic"></span>
+        </div>
+      </div>
+      <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+      <p class="counter" id="counter"></p>
+      <article class="q-card">
+        <h2 class="q-text" id="q-text"></h2>
+        <div class="opts" id="opts"></div>
+        <div class="explain hidden" id="explain" role="status" aria-live="polite">
+          <p class="explain-verdict" id="explain-verdict"></p>
+          <p class="explain-text" id="explain-text"></p>
+        </div>
+        <div class="q-actions">
+          <button class="btn primary hidden" id="btn-next" type="button">Дальше →</button>
+        </div>
+      </article>
+    </section>
+
+    <!-- ===== РЕЗУЛЬТАТ ===== -->
+    <section class="view hidden" id="view-result">
+      <div class="result-card">
+        <p class="eyebrow" id="result-grade"></p>
+        <div class="score-ring" id="score-ring">
+          <div class="score-inner">
+            <span class="score-num" id="score-num">0</span>
+            <span class="score-total" id="score-total"></span>
+          </div>
+        </div>
+        <h2 class="verdict" id="verdict"></h2>
+        <p class="verdict-sub" id="verdict-sub"></p>
+        <div class="result-actions">
+          <button class="btn primary" id="btn-retry" type="button">Пройти ещё раз</button>
+          <button class="btn ghost" id="btn-home" type="button">К выбору класса</button>
+        </div>
+        <a class="result-cta" href="https://t.me/ArinaGalitskaya" target="_blank" rel="noopener">Разобрать сложные темы с Ариной →</a>
+      </div>
+    </section>
+
+  </div>
+
+  <noscript><p style="text-align:center;padding:2rem">Для работы тестов включите JavaScript.</p></noscript>
+  <script src="data.js?v=1"></script>
+  <script src="app.js?v=1"></script>
+</body>
+</html>
