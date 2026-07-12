@@ -55,6 +55,10 @@
     Object.keys(views).forEach(function (k) {
       views[k].classList.toggle("hidden", k !== name);
     });
+    // Верхнюю плашку-подписку показываем только на главной, чтобы на экране
+    // теста было больше места (пояснение и «Дальше» помещались без прокрутки).
+    var banner = document.querySelector(".cta-banner");
+    if (banner) banner.classList.toggle("hidden", name !== "home");
     window.scrollTo({ top: 0, behavior: "auto" });
   }
 
@@ -166,6 +170,13 @@
     $("progress-fill").style.width = ((state.idx + 1) / state.grade.questions.length * 100) + "%";
     $("btn-next").classList.remove("hidden");
     $("btn-next").focus({ preventScroll: true });
+
+    // Показать плашку «Верно/Неверно», пояснение и кнопку «Дальше» без ручной
+    // прокрутки (особенно на телефоне): плавно подводим пояснение к центру экрана.
+    requestAnimationFrame(function () {
+      try { ex.scrollIntoView({ behavior: "smooth", block: "center" }); }
+      catch (e) { ex.scrollIntoView(); }
+    });
   }
 
   function next() {
@@ -178,13 +189,13 @@
   }
 
   /* ---------- результат ---------- */
-  function verdictFor(score, total) {
-    var p = score / total;
-    if (score === total) return ["Идеально!", "Ни одной ошибки. Тема усвоена на отлично."];
-    if (p >= 0.9) return ["Блестяще!", "Почти максимум – вы отлично разобрались в теме."];
-    if (p >= 0.7) return ["Отлично!", "Уверенный результат. Загляните в объяснения к ошибкам – и будет идеально."];
-    if (p >= 0.5) return ["Хорошо!", "База есть. Перечитайте конспект урока и попробуйте ещё раз."];
-    return ["Только начало", "Стоит перечитать материал урока – а потом вернуться к тесту. Всё получится!"];
+  // Шкала оценивания (из 20 вопросов): ≤5 — нужно повторить, 6–9 — удовл.,
+  // 10–15 — хорошо, 16–20 — отлично.
+  function verdictFor(score) {
+    if (score <= 5) return ["Нужно ещё повторить", "Загляните в объяснения к ошибкам, перечитайте материал урока – и возвращайтесь. Всё получится!"];
+    if (score <= 9) return ["Удовлетворительно", "Неплохое начало! Разберите объяснения к ошибкам и попробуйте ещё раз."];
+    if (score <= 15) return ["Хорошо", "Уверенный результат! Ещё немного практики – и будет отлично."];
+    return ["Отлично", "Прекрасная работа! Тема усвоена."];
   }
 
   function finish() {
@@ -204,13 +215,13 @@
     $("result-grade").textContent = g.grade + " · " + g.topic;
     $("score-total").textContent = "из " + total;
 
-    var v = verdictFor(score, total);
+    var v = verdictFor(score);
     $("verdict").textContent = v[0];
     $("verdict-sub").textContent = v[1];
 
     var ring = $("score-ring");
     var pct = Math.round(score / total * 100);
-    ring.style.setProperty("--ring", score / total >= 0.7 ? "var(--good)" : "var(--accent)");
+    ring.style.setProperty("--ring", score >= 10 ? "var(--good)" : "var(--accent)");
 
     prepareCert();
 
@@ -219,21 +230,20 @@
   }
 
   /* ---------- грамота ---------- */
-  function shortRank(score, total) {
-    var p = total ? score / total : 0;
-    if (score === total) return "Идеально";
-    if (p >= 0.9) return "Блестяще";
-    if (p >= 0.7) return "Отлично";
-    if (p >= 0.5) return "Хорошо";
-    return "Участие";
+  // Оценка по той же шкале, что и на экране результата (из 20 вопросов).
+  function shortRank(score) {
+    if (score <= 5) return "Нужно ещё повторить";
+    if (score <= 9) return "Удовлетворительно";
+    if (score <= 15) return "Хорошо";
+    return "Отлично";
   }
-  function certKind(score, total) {
-    return (total ? score / total : 0) >= 0.7 ? "Грамота" : "Сертификат";
+  function certKind(score) {
+    return score >= 10 ? "Грамота" : "Сертификат";
   }
   function prepareCert() {
     var r = state.result;
     if (!r) return;
-    var kind = certKind(r.score, r.total);
+    var kind = certKind(r.score);
     $("cert-title").textContent = kind === "Грамота" ? "Именная грамота" : "Именной сертификат";
     var input = $("cert-name");
     if (input && !input.value) input.value = loadName();
@@ -244,10 +254,10 @@
     if (!r) return "";
     var name = (($("cert-name") || {}).value || "").trim();
     var pct = r.total ? Math.round(r.score / r.total * 100) : 0;
-    var lines = ["🎓 " + certKind(r.score, r.total) + " · PRO Учительская"];
+    var lines = ["🎓 " + certKind(r.score) + " · PRO Учительская"];
     if (name) lines.push("Ученик: " + name);
     lines.push(r.gradeLabel + " · " + r.topic);
-    lines.push("Результат: " + r.score + " из " + r.total + " (" + pct + "%) — " + shortRank(r.score, r.total));
+    lines.push("Результат: " + r.score + " из " + r.total + " (" + pct + "%) — " + shortRank(r.score));
     lines.push(SITE_URL);
     return lines.join("\n");
   }
@@ -303,32 +313,39 @@
     var ty = 480;
     topicLines.forEach(function (ln) { x.fillText(ln, W / 2, ty); ty += 42; });
 
-    var sy = 636;
-    var cx = [W / 2 - 300, W / 2, W / 2 + 300];
-    var vals = [r.score + " / " + r.total, pct + "%", shortRank(r.score, r.total)];
-    var labs = ["РЕЗУЛЬТАТ", "ПРОЦЕНТ", "ОЦЕНКА"];
-    for (var i = 0; i < 3; i++) {
-      x.fillStyle = "#d8543a"; x.font = "700 40px Lora, Georgia, serif";
-      x.fillText(vals[i], cx[i], sy);
-      x.fillStyle = "#8fa0b2"; x.font = "700 16px Inter, Arial, sans-serif";
-      x.fillText(labs[i], cx[i], sy + 34);
+    // ОЦЕНКА — крупно по центру (текст может быть длинным, напр. «Нужно ещё повторить»)
+    var grade = shortRank(r.score);
+    x.fillStyle = "#8fa0b2"; x.font = "700 16px Inter, Arial, sans-serif";
+    x.fillText("ОЦЕНКА", W / 2, 582);
+    var gfs = 46;
+    x.fillStyle = "#d8543a"; x.font = "700 " + gfs + "px Lora, Georgia, serif";
+    while (x.measureText(grade).width > W - 220 && gfs > 26) { gfs -= 2; x.font = "700 " + gfs + "px Lora, Georgia, serif"; }
+    x.fillText(grade, W / 2, 632);
+
+    // Результат и процент — два столбца
+    var cx = [W / 2 - 175, W / 2 + 175];
+    var vals = [r.score + " / " + r.total, pct + "%"];
+    var labs = ["РЕЗУЛЬТАТ", "ПРОЦЕНТ"];
+    for (var i = 0; i < 2; i++) {
+      x.fillStyle = "#172d44"; x.font = "700 38px Lora, Georgia, serif";
+      x.fillText(vals[i], cx[i], 706);
+      x.fillStyle = "#8fa0b2"; x.font = "700 15px Inter, Arial, sans-serif";
+      x.fillText(labs[i], cx[i], 738);
     }
 
-    x.fillStyle = "#5c6f84"; x.font = "400 23px Inter, Arial, sans-serif";
+    x.fillStyle = "#5c6f84"; x.font = "400 22px Inter, Arial, sans-serif";
     var dstr;
     try { dstr = new Date().toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }); }
     catch (e) { dstr = new Date().toLocaleDateString(); }
-    x.fillText("Дата: " + dstr, W / 2, 742);
+    x.fillText("Дата: " + dstr, W / 2, 784);
 
-    x.fillStyle = "#172d44"; x.font = "700 24px Lora, Georgia, serif";
-    x.fillText("PRO Учительская · Арина Галицкая", W / 2, H - 96);
-    x.fillStyle = "#8fa0b2"; x.font = "400 19px Inter, Arial, sans-serif";
-    x.fillText("prouchitelskaya.github.io/russian-tests-5-11", W / 2, H - 66);
+    x.fillStyle = "#172d44"; x.font = "700 23px Lora, Georgia, serif";
+    x.fillText("PRO Учительская", W / 2, H - 42);
 
-    x.beginPath(); x.arc(W - 168, H - 150, 52, 0, Math.PI * 2);
+    x.beginPath(); x.arc(W - 152, 690, 50, 0, Math.PI * 2);
     x.fillStyle = "#d8543a"; x.fill();
-    x.fillStyle = "#fff"; x.font = "700 30px Lora, Georgia, serif";
-    x.fillText("PRO", W - 168, H - 140);
+    x.fillStyle = "#fff"; x.font = "700 28px Lora, Georgia, serif";
+    x.fillText("PRO", W - 152, 700);
 
     c.toBlob(function (blob) {
       if (!blob) { toast("Не удалось создать картинку"); return; }
